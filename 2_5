@@ -1,0 +1,38 @@
+import kotlin.random.Random
+
+const val ROW = 9
+const val COL = 9
+const val MINE = "x"
+const val CLEAR = "."
+
+fun main(args: Array<String>) {
+    val emptyField = fillEmptyField()
+    println("How many mines do you want on the field?")
+    val countOfMines = readln().toInt()
+    val newField = fillFieldWithMines(countOfMines, emptyField)
+    printField(newField)
+
+    
+}
+
+fun fillEmptyField(): Array<Array<String>> {
+    return Array(ROW) { Array(COL) { CLEAR } }
+}
+
+fun fillFieldWithMines(count: Int, field: Array<Array<String>>): Array<Array<String>> {
+    var counter = 0
+    val newField =  field
+    while(counter < count) {
+        val row = Random.nextInt(0, ROW + 1)
+        val col = Random.nextInt(0, COL + 1)
+        if (newField[row][col] == CLEAR) newField[row][col] = MINE else continue
+        counter++
+    }
+    return newField
+}
+
+fun printField(field: Array<Array<String>>) {
+    for (row in field) {
+        println(row.joinToString(""))
+    }
+}
