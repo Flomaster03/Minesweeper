@@ -1,0 +1,75 @@
+import kotlin.random.Random
+
+const val ROW = 9
+const val COL = 9
+const val MINE = 'x'
+const val CLEAR = '.'
+
+fun main() {
+    val emptyField = fillEmptyField()
+    println("How many mines do you want on the field?")
+    val countOfMines = readln().toInt()
+    val newField = fillFieldWithMines(countOfMines, emptyField)
+    val digitField = checkCells(newField)
+    printField(digitField)
+}
+
+//заполнение пустого поля
+fun fillEmptyField(): Array<Array<Char>> {
+    return Array(ROW) { Array(COL) { CLEAR } }
+}
+
+//установка мин на поле
+fun fillFieldWithMines(count: Int, field: Array<Array<Char>>): Array<Array<Char>> {
+    var counter = 0
+    val newField =  field
+    while(counter < count) {
+        val row = Random.nextInt(0, ROW)
+        val col = Random.nextInt(0, COL)
+        if (newField[row][col] == CLEAR) newField[row][col] = MINE else continue
+        counter++
+    }
+    return newField
+}
+
+/*
+Последовательно проверяется каждая ячейка. Проверка 8 ячеек вокруг мины. 
+Если она расположена в углу - проверяется 3 ячейки вокруг нее, если на боковой грани - 5.
+Если в ячейке мина - оставляется знак мины. 
+В каждой пустой ячейке выводится количество мин, с которыми эта ячейка контактирует.
+ */
+fun checkCells(field: Array<Array<Char>>): Array<Array<Char>> {
+    val newField = field
+    for (row in 0 until ROW) {
+        for (col in 0 until COL) {
+            if (field[row][col] == 'x') continue
+            val upper = when {
+                row == 0 -> 0
+                col == 0 -> arrayOf(field[row - 1][col], field[row - 1][col + 1]).count { it == 'x'}
+                col == COL - 1 -> arrayOf(field[row - 1][col - 1], field[row - 1][col]).count { it == 'x'}
+                else -> arrayOf(field[row - 1][col - 1], field[row - 1][col], field[row - 1][col + 1]).count { it == 'x'}
+            }
+            val medium = when {
+                col == 0 -> arrayOf(field[row][col + 1]).count { it == 'x'}
+                col == COL - 1 -> arrayOf(field[row ][col - 1]).count { it == 'x'}
+                else -> arrayOf(field[row ][col - 1], field[row][col + 1]).count { it == 'x'}
+            }
+            val lower = when {
+                row == ROW - 1 -> 0
+                col == 0 -> arrayOf(field[row + 1][col], field[row + 1][col + 1]).count { it == 'x'}
+                col == COL - 1 -> arrayOf(field[row + 1][col - 1], field[row + 1][col]).count { it == 'x'}
+                else -> arrayOf(field[row + 1][col - 1], field[row + 1][col], field[row + 1][col + 1]).count { it == 'x'}
+            }
+            val count = upper + medium + lower
+            if (count > 0) newField[row][col] = Character.forDigit(count, 10)
+        }
+    }
+    return newField
+}
+
+//печать поля
+fun printField(field: Array<Array<Char>>) {
+    for (row in field) {
+        println(row.joinToString(""))
+    }
+}
