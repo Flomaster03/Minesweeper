@@ -1,0 +1,174 @@
+import kotlin.random.Random
+
+const val ROW = 9
+const val COL = 9
+const val MINE = 'x'
+const val CLEAR = '.'
+
+var marks = mutableListOf<Cell>() //отметки игрока на поле - предположение, где находятся мины
+
+fun main() {
+    val emptyField = fillEmptyField()
+    println("How many mines do you want on the field?")
+    val countOfMines = readln().toInt()
+    val fieldWithMines = fillFieldWithMines(countOfMines, emptyField)
+    val fieldWithMinesAndDigits = checkCells(fieldWithMines)
+    printField(fieldWithMinesAndDigits)
+    putMarks(fieldWithMinesAndDigits, countOfMines)
+}
+
+//заполнение пустого поля
+fun fillEmptyField(): Array<Array<Char>> {
+    return Array(ROW) { Array(COL) { CLEAR } }
+}
+
+//установка мин на поле
+fun fillFieldWithMines(count: Int, field: Array<Array<Char>>): Array<Array<Char>> {
+    var counter = 0
+    val newField = field
+    while (counter < count) {
+        val row = Random.nextInt(0, ROW)
+        val col = Random.nextInt(0, COL)
+        if (newField[row][col] == CLEAR) newField[row][col] = MINE else continue
+        counter++
+    }
+    return newField
+}
+
+/*
+Последовательно проверяется каждая ячейка игрового поля. Проверка 8 ячеек вокруг мины.
+Если она расположена в углу - проверяется 3 ячейки вокруг нее, если на боковой грани - 5.
+Если в ячейке мина - оставляется знак мины.
+В каждой пустой ячейке выводится количество мин, с которыми эта ячейка контактирует.
+ */
+fun checkCells(field: Array<Array<Char>>): Array<Array<Char>> {
+    val newField = field
+    for (row in 0 until ROW) {
+        for (col in 0 until COL) {
+            if (field[row][col] == 'x') {
+                continue
+            }
+            val upper = when {
+                row == 0 -> 0
+                col == 0 -> arrayOf(field[row - 1][col], field[row - 1][col + 1]).count { it == 'x' }
+                col == COL - 1 -> arrayOf(field[row - 1][col - 1], field[row - 1][col]).count { it == 'x' }
+                else -> arrayOf(
+                    field[row - 1][col - 1],
+                    field[row - 1][col],
+                    field[row - 1][col + 1]
+                ).count { it == 'x' }
+            }
+            val medium = when {
+                col == 0 -> arrayOf(field[row][col + 1]).count { it == 'x' }
+                col == COL - 1 -> arrayOf(field[row][col - 1]).count { it == 'x' }
+                else -> arrayOf(field[row][col - 1], field[row][col + 1]).count { it == 'x' }
+            }
+            val lower = when {
+                row == ROW - 1 -> 0
+                col == 0 -> arrayOf(field[row + 1][col], field[row + 1][col + 1]).count { it == 'x' }
+                col == COL - 1 -> arrayOf(field[row + 1][col - 1], field[row + 1][col]).count { it == 'x' }
+                else -> arrayOf(
+                    field[row + 1][col - 1],
+                    field[row + 1][col],
+                    field[row + 1][col + 1]
+                ).count { it == 'x' }
+            }
+            val count = upper + medium + lower
+            if (count > 0) newField[row][col] = Character.forDigit(count, 10)
+        }
+    }
+    return newField
+}
+
+//печать поля. 'x'(мина) заменяется на '.'
+fun printField(field: Array<Array<Char>>) {
+    val sb1 = buildString {
+        append(" |")
+        repeat(COL) {
+            append(it + 1)
+        }
+        append("|")
+    }
+    val sb2 = buildString {
+        append("-|")
+        repeat(COL) {
+            append('-')
+        }
+        append("|")
+    }
+    println("$sb1\n$sb2")
+    for (index in field.indices) {
+        print("${index + 1}|")
+        print(field[index].joinToString("").replace('x', '.'))
+        println("|")
+    }
+    println(sb2)
+}
+
+/*игрок ставит знак '*' в ячейку, где предполагается мина. 
+Если там есть цифра - печатается сообщение, знак не ставится.
+Если там уже есть '*', он снимается - появляется пустая ячейка.
+Когда '*' совпадают с локализацией всех мин, игрок выигрывает
+*/
+fun putMarks(fieldWithMinesAndDigits: Array<Array<Char>>, countOfMines: Int) {
+    val field = fieldWithMinesAndDigits.map { it.copyOf() }.toTypedArray()   //копирование двумерного массива
+    while (true) {
+        println("Set/delete mine marks (x and y coordinates):")
+        val (x, y) = readln().split(" ").map { it.toInt() }
+        when {
+            field[y - 1][x - 1] in '1'..'9' -> {
+                println("There is a number here!")
+                continue
+            }
+
+            field[y - 1][x - 1] == '*' -> {
+                field[y - 1][x - 1] = fieldWithMinesAndDigits[y - 1][x - 1]
+                printField(field)
+                marks.remove(Cell(x - 1, y - 1))
+            }
+
+            else -> {
+                field[y - 1][x - 1] = '*'
+                printField(field)
+                marks.add(Cell(x - 1, y - 1))
+            }
+        }
+        if (marks.size == countOfMines) {
+            val check = marks.count { fieldWithMinesAndDigits[it.y][it.x] == 'x' }
+            if (check == countOfMines) {
+                println("Congratulations! You found all the mines!")
+                break
+            }
+        }
+    }
+}
+
+data class Cell(val x: Int, val y: Int)
+
+/*
+//печать широкого поля пробел между символами
+fun printField2(field: Array<Array<Char>>) {
+    val sb1 = buildString {
+        append(" |")
+        repeat(COL - 1) {
+            append("${it + 1} ")
+        }
+        append("$COL|")
+    }
+    val sb2 = buildString{
+        append("-|")
+        repeat(COL - 1) {
+            append("--")
+        }
+        append("-|")
+    }
+    println("$sb1\n$sb2")
+    for (index in field.indices) {
+        print("${index + 1}|")
+        print(field[index].joinToString(" ").replace('x', '.'))
+        println("|")
+    }
+    println(sb2)
+}
+*/
+ 
