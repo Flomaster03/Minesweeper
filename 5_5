@@ -18,10 +18,8 @@ var field = arrayOf<Array<Char>>()
 var fieldWithMinesAndDigits = arrayOf<Array<Char>>()
 
 fun main() {
-
     prepareField()
     if (isPlayerWin()) return
-    printField(fieldWithMinesAndDigits)
     putMarks()
 }
 
@@ -173,14 +171,12 @@ fun actionMine(x: Int, y: Int) {
             field[y - 1][x - 1] = UNKNOWN
             printField(field)
             marks.remove(Cell(x - 1, y - 1))
-            println(marks.size)
         }
 
         field[y - 1][x - 1] == UNKNOWN -> {
             field[y - 1][x - 1] = MARK
             printField(field)
             marks.add(Cell(x - 1, y - 1))
-            println(marks.size)
         }
 
         else -> {
@@ -206,11 +202,9 @@ fun actionFree(x: Int, y: Int) {
                 printField(field)
                 countOfUnknownCells -= 1
                 isGameContinue = true
-                println("цифра $countOfUnknownCells $x $y")
             } else {
                 return
             }
-
         }
 
         fieldWithMinesAndDigits[y - 1][x - 1] == UNKNOWN -> {   //открытие ячейки, где пусто
@@ -251,7 +245,6 @@ fun fillEmptyCells(fillField: Array<Array<Char>>, x: Int, y: Int) {
     if (field[y][x] == MARK) marks.remove(Cell(x, y))
     fillField[y][x] = CLEAR
     countOfUnknownCells -= 1
-    println("слеш $countOfUnknownCells ${x + 1} ${y + 1}")
 
     fillEmptyCells(fillField, x - 1, y - 1)
     fillEmptyCells(fillField, x, y - 1)
@@ -277,7 +270,6 @@ fun fillAroundEmptyCells(emptyField: Array<Array<Char>>, fillField: Array<Array<
                     if (emptyField[row][col] == MARK) marks.remove(Cell(col, row))
                     emptyField[row][col] = fillField[row][col]
                     countOfUnknownCells -= 1
-                    println("цифра $countOfUnknownCells ${col + 1} ${row + 1}")
                 }
             }
         }
