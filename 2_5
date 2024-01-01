@@ -1,8 +1,10 @@
+package minesweeper
+
 import kotlin.random.Random
 
 const val ROW = 9
 const val COL = 9
-const val MINE = "x"
+const val MINE = "X"
 const val CLEAR = "."
 
 fun main(args: Array<String>) {
@@ -12,7 +14,7 @@ fun main(args: Array<String>) {
     val newField = fillFieldWithMines(countOfMines, emptyField)
     printField(newField)
 
-    
+
 }
 
 fun fillEmptyField(): Array<Array<String>> {
@@ -23,8 +25,8 @@ fun fillFieldWithMines(count: Int, field: Array<Array<String>>): Array<Array<Str
     var counter = 0
     val newField =  field
     while(counter < count) {
-        val row = Random.nextInt(0, ROW + 1)
-        val col = Random.nextInt(0, COL + 1)
+        val row = Random.nextInt(0, ROW)
+        val col = Random.nextInt(0, COL)
         if (newField[row][col] == CLEAR) newField[row][col] = MINE else continue
         counter++
     }
