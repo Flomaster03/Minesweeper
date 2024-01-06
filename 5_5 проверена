@@ -1,3 +1,5 @@
+package minesweeper
+
 import kotlin.random.Random
 
 const val ROW = 9
@@ -14,28 +16,59 @@ var countOfMines = 0  //количество мин
 var countOfUnknownCells = ROW * COL  //количество неисследованных ячеек
 val num = arrayOf(-1, 0, 1)
 var isGameContinue = true
-var field = arrayOf<Array<Char>>()
-var fieldWithMinesAndDigits = arrayOf<Array<Char>>()
+var field = arrayOf<Array<Char>>() //поле, которое выводится на экран
+var fieldWithMinesAndDigits = arrayOf<Array<Char>>() //поле, которое не печатается, но содержит все мины и цифры (по нему происходят проверки расположения)
+var isFirstMove = true //открывал ли игрок ячейки
 
 fun main() {
-    prepareField()
-    if (isPlayerWin()) return
-    putMarks()
+    move()
+    if (!isGameContinue) return
+}
+
+/*2 режима: free и mine.
+mine: игрок ставит знак '*' в ячейку, где предполагается мина.
+При повторном введении координат этой же ячейки знак снимается.
+free: если вводятся координаты ячейки с миной, игрок проигрывает.
+Если в ячейке есть цифра - открывается одна эта ячейка с цифрой.
+Если ячейка пустая -
+автоматически открываются пустые ячейки, граничащие друг с другом по вертикали и горизонтали,
+до ячеек, содержащих цифры и мины. Если в пустой ячейке имеется знак '*', то он меняется на знак пустой ячейки.
+Игрок выигрывает: когда '*' совпадают с локализацией всех мин или
+остаются неоткрытыми только ячейки с минами
+*/
+fun move() {
+    field = fillEmptyField()
+    println("How many mines do you want on the field?")
+    countOfMines = readln().toInt()
+    printField(field)
+    while (true) {
+        println("Set/unset mines marks or claim a cell as free:")
+        val input = readln().split(" ")
+        val x = input[0].toInt()
+        val y = input[1].toInt()
+        val action = input[2]
+        when (action) {
+            "mine" -> actionMine(x, y)
+            "free" -> {
+                if (isFirstMove) {
+                    prepareField(x, y)
+                    isFirstMove = false
+                    actionFree(x, y)
+                    if (!isGameContinue) break
+                } else {
+                    actionFree(x, y)
+                    if (!isGameContinue) break
+                }
+            }
+        }
+        if (isPlayerWin()) break
+    }
 }
 
 //заполнение поля минами и цифрами
-fun prepareField() {
-    val emptyField = fillEmptyField()
-    println("How many mines do you want on the field?")
-    countOfMines = readln().toInt()
-    printField(emptyField)
-    println("Set/unset mines marks or claim a cell as free:")
-    val (x, y, action) = readln().split(" ")
-    val fieldWithMines = fillFieldWithMines(countOfMines, emptyField, y.toInt(), x.toInt())
+fun prepareField(x: Int, y: Int) {
+    val fieldWithMines = fillFieldWithMines(countOfMines, y.toInt(), x.toInt())
     fieldWithMinesAndDigits = fillFieldWithMinesAndDigits(fieldWithMines)
-    field = fillEmptyField()
-    actionFree(x.toInt(), y.toInt())
-
 }
 
 //заполнение пустого поля
@@ -44,7 +77,7 @@ fun fillEmptyField(): Array<Array<Char>> {
 }
 
 //установка мин на поле
-fun fillFieldWithMines(count: Int, field: Array<Array<Char>>, y: Int, x: Int): Array<Array<Char>> {
+fun fillFieldWithMines(count: Int, y: Int, x: Int): Array<Array<Char>> {
     var counter = 0
     val emptyCells = mutableListOf<Cell>()
     for (i in 0..2) {            //мина не может содержаться в указанной пользователем ячейке
@@ -54,7 +87,7 @@ fun fillFieldWithMines(count: Int, field: Array<Array<Char>>, y: Int, x: Int): A
             if (col in 0 until COL && row in 0 until ROW) emptyCells.add(Cell(col, row))
         }
     }
-    val newField = field
+    val newField = fillEmptyField()
     while (counter < count) {
         val row = Random.nextInt(0, ROW)
         val col = Random.nextInt(0, COL)
@@ -74,42 +107,21 @@ fun fillFieldWithMines(count: Int, field: Array<Array<Char>>, y: Int, x: Int): A
 В каждой пустой ячейке выводится количество мин, с которыми эта ячейка контактирует.
  */
 fun fillFieldWithMinesAndDigits(field: Array<Array<Char>>): Array<Array<Char>> {
-    val newField = field
-    for (row in 0 until ROW) {
-        for (col in 0 until COL) {
-            if (field[row][col] == MINE) {
-                continue
+    for (y in 0 until ROW) {
+        for (x in 0 until COL) {
+            if (field[y][x] == MINE) continue
+            var counter = 0
+            for (i in 0..2) {
+                for (j in 0..2) {
+                    val col = x + num[i]
+                    val row = y + num[j]
+                    if (col in 0 until COL && row in 0 until ROW && field[row][col] == MINE) counter += 1
+                }
             }
-            val upper = when {
-                row == 0 -> 0
-                col == 0 -> arrayOf(field[row - 1][col], field[row - 1][col + 1]).count { it == MINE }
-                col == COL - 1 -> arrayOf(field[row - 1][col - 1], field[row - 1][col]).count { it == MINE }
-                else -> arrayOf(
-                    field[row - 1][col - 1],
-                    field[row - 1][col],
-                    field[row - 1][col + 1]
-                ).count { it == MINE }
-            }
-            val medium = when {
-                col == 0 -> arrayOf(field[row][col + 1]).count { it == MINE }
-                col == COL - 1 -> arrayOf(field[row][col - 1]).count { it == MINE }
-                else -> arrayOf(field[row][col - 1], field[row][col + 1]).count { it == MINE }
-            }
-            val lower = when {
-                row == ROW - 1 -> 0
-                col == 0 -> arrayOf(field[row + 1][col], field[row + 1][col + 1]).count { it == MINE }
-                col == COL - 1 -> arrayOf(field[row + 1][col - 1], field[row + 1][col]).count { it == MINE }
-                else -> arrayOf(
-                    field[row + 1][col - 1],
-                    field[row + 1][col],
-                    field[row + 1][col + 1]
-                ).count { it == MINE }
-            }
-            val count = upper + medium + lower
-            if (count > 0) newField[row][col] = Character.forDigit(count, 10)
+            if (counter > 0) field[y][x] = Character.forDigit(counter, 10)
         }
     }
-    return newField
+    return field
 }
 
 //печать поля.
@@ -137,33 +149,6 @@ fun printField(field: Array<Array<Char>>) {
     println(sb2)
 }
 
-/*2 режима: free и mine.
-mine: игрок ставит знак '*' в ячейку, где предполагается мина.
-При повторном введении координат этой же ячейки знак снимается.
-free: если вводятся координаты ячейки с миной, игрок проигрывает.
-Если в ячейке есть цифра - открывается одна эта ячейка с цифрой.
-Если ячейка пустая -
-автоматически открываются пустые ячейки, граничащие друг с другом по вертикали и горизонтали,
-до ячеек, содержащих цифры и мины. Если в пустой ячейке имеется знак '*', то он меняется на знак пустой ячейки.
-Игрок выигрывает: когда '*' совпадают с локализацией всех мин или
-остаются неоткрытыми только ячейки с минами
-*/
-fun putMarks() {
-    while (true) {
-        println("Set/unset mines marks or claim a cell as free:")
-        val input = readln().split(" ")
-        val x = input[0].toInt()
-        val y = input[1].toInt()
-        val action = input[2]
-        if (action == "mine") actionMine(x, y)
-        if (action == "free") {
-            actionFree(x, y)
-            if (!isGameContinue) break
-        }
-        if (isPlayerWin()) break
-    }
-}
-
 //логика хода, если действие mine
 fun actionMine(x: Int, y: Int) {
     when {
@@ -173,7 +158,7 @@ fun actionMine(x: Int, y: Int) {
             marks.remove(Cell(x - 1, y - 1))
         }
 
-        field[y - 1][x - 1] == UNKNOWN -> {
+        field[y - 1][x - 1] == UNKNOWN || field[y - 1][x - 1] == CLEAR -> {
             field[y - 1][x - 1] = MARK
             printField(field)
             marks.add(Cell(x - 1, y - 1))
@@ -226,11 +211,13 @@ fun actionFree(x: Int, y: Int) {
 
 //проверка игрового поля (условия выигрыша)
 fun isPlayerWin(): Boolean {
+    if (isFirstMove) return false //если игрок не открывал ячейки, то мин на поле еще нет
     if (countOfUnknownCells == countOfMines ||
         (marks.size == countOfMines &&
                 marks.count { fieldWithMinesAndDigits[it.y][it.x] == MINE } == countOfMines)
     ) {
         println("Congratulations! You found all the mines!")
+        isGameContinue = false
         return true
     }
     return false
@@ -279,30 +266,3 @@ fun fillAroundEmptyCells(emptyField: Array<Array<Char>>, fillField: Array<Array<
 }
 
 data class Cell(val x: Int, val y: Int)
-
-
-//печать широкого поля пробел между символами
-/*
-fun printField(field: Array<Array<Char>>) {
-    val sb1 = buildString {
-        append(" |")
-        repeat(COL - 1) {
-            append("${it + 1} ")
-        }
-        append("$COL|")
-    }
-    val sb2 = buildString{
-        append("-|")
-        repeat(COL - 1) {
-            append("--")
-        }
-        append("-|")
-    }
-    println("$sb1\n$sb2")
-    for (index in field.indices) {
-        print("${index + 1}|")
-        print(field[index].joinToString(" "))
-        println("|")
-    }
-    println(sb2)
-}*/
